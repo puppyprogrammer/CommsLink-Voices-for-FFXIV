@@ -1,0 +1,13 @@
+{
+  "name": "ffxivoices-server",
+  "version": "0.1.0",
+  "description": "FFXIVoices TTS server - receives chat, generates speech via Piper, broadcasts audio",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

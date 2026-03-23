@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FFXIVoices Test Client</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+    #log { background: #16213e; padding: 10px; height: 300px; overflow-y: auto; border: 1px solid #333; }
+    .entry { margin: 2px 0; }
+    .meta { color: #4fc3f7; }
+    .audio { color: #81c784; }
+    .error { color: #ef5350; }
+    button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+    input { padding: 8px; width: 300px; background: #16213e; color: #e0e0e0; border: 1px solid #555; }
+  </style>
+</head>
+<body>
+  <h2>FFXIVoices - WebSocket Audio Test Client</h2>
+  <div>
+    <button onclick="connect()">Connect WS</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <span id="status">Disconnected</span>
+  </div>
+  <hr>
+  <div>
+    <input id="name" value="Test Player" placeholder="Player Name">
+    <input id="msg" value="Hello from the test client" placeholder="Message">
+    <button onclick="sendChat()">Send Chat (HTTP POST)</button>
+  </div>
+  <hr>
+  <div id="log"></div>
+
+  <script>
+    let ws = null;
+    let expectingBinary = false;
+    let currentMeta = null;
+
+    function log(text, cls) {
+      const el = document.getElementById('log');
+      const div = document.createElement('div');
+      div.className = 'entry ' + (cls || '');
+      div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + text;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function connect() {
+      if (ws && ws.readyState === WebSocket.OPEN) { log('Already connected'); return; }
+      ws = new WebSocket('ws://localhost:8080');
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = function() {
+        document.getElementById('status').textContent = 'Connected';
+        log('WebSocket connected', 'meta');
+      };
+
+      ws.onmessage = function(event) {
+        if (typeof event.data === 'string') {
+          currentMeta = JSON.parse(event.data);
+          log('[' + currentMeta.playerName + ']: "' + currentMeta.message + '" (' + currentMeta.format + ', ' + currentMeta.size + ' bytes)', 'meta');
+          expectingBinary = true;
+        } else if (event.data instanceof ArrayBuffer) {
+          log('Received audio: ' + event.data.byteLength + ' bytes - playing...', 'audio');
+          playAudio(event.data);
+          expectingBinary = false;
+        }
+      };
+
+      ws.onclose = function() {
+        document.getElementById('status').textContent = 'Disconnected';
+        log('WebSocket disconnected', 'error');
+      };
+
+      ws.onerror = function() { log('WebSocket error', 'error'); };
+    }
+
+    function disconnect() {
+      if (ws) { ws.close(); ws = null; }
+    }
+
+    function playAudio(arrayBuffer) {
+      var blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+      var url = URL.createObjectURL(blob);
+      var audio = new Audio(url);
+      audio.play().catch(function(e) { log('Playback error: ' + e.message, 'error'); });
+      audio.onended = function() { URL.revokeObjectURL(url); };
+    }
+
+    async function sendChat() {
+      var playerName = document.getElementById('name').value;
+      var message = document.getElementById('msg').value;
+      try {
+        var res = await fetch('http://localhost:3000/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerName: playerName, contentId: '0', message: message, timestamp: Date.now() })
+        });
+        var data = await res.json();
+        log('POST /chat -> ' + JSON.stringify(data), 'meta');
+      } catch (e) {
+        log('HTTP error: ' + e.message, 'error');
+      }
+    }
+
+    connect();
+  </script>
+</body>
+</html>

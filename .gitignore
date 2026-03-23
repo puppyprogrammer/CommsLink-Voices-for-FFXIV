@@ -1,0 +1,25 @@
+# Build artifacts
+plugin/FFXIVoices/bin/
+plugin/FFXIVoices/obj/
+
+# Node
+server/node_modules/
+
+# Piper binaries (large, downloaded via setup script)
+server/piper/
+server/voices/
+
+# Audio cache
+server/audio-cache/
+
+# Dalamud DLLs (large, downloaded separately)
+dalamud/
+
+# Test artifacts
+*.wav
+*.exe
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
