@@ -1,0 +1,11 @@
+{
+  "_comment": "Manual voice overrides by contentId or playerName. Unmatched players use name-hash parity.",
+  "byContentId": {
+    "12345678": "male",
+    "87654321": "female"
+  },
+  "byPlayerName": {
+    "Your Character Name": "male",
+    "Party Member Name": "female"
+  }
+}

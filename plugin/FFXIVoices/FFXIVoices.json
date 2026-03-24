@@ -1,0 +1,11 @@
+{
+  "Author": "CommsLink",
+  "Name": "CommsLink Voices",
+  "Punchline": "TTS voices for party chat powered by CommsLink",
+  "Description": "Sends party/say chat to the CommsLink TTS server and plays back generated speech audio for each player.",
+  "InternalName": "FFXIVoices",
+  "AssemblyVersion": "0.7.0.0",
+  "RepoUrl": "https://github.com/puppyprogrammer/CommsLink-Voices-for-FFXIV",
+  "ApplicableVersion": "any",
+  "Tags": [ "tts", "voice", "chat", "party" ]
+}
