@@ -41,12 +41,18 @@ FFXIV Game Client                         Local Machine
 ```
 H:\Development\FFXIVoices\
 ├── BUILD_PLAN.md                      # This file
+├── dalamud\                           # ✅ EXISTS - Dalamud v14 DLLs (downloaded for build)
+│   ├── Dalamud.dll
+│   ├── Dalamud.Bindings.ImGui.dll
+│   ├── Lumina.dll
+│   ├── Lumina.Excel.dll
+│   └── FFXIVClientStructs.dll
 ├── plugin\
 │   └── FFXIVoices\
-│       ├── FFXIVoices.csproj          # ✅ EXISTS - .NET 8, NAudio, Dalamud refs
-│       ├── FFXIVoices.json            # ✅ EXISTS - Plugin manifest
-│       ├── Plugin.cs                  # ✅ EXISTS - Entry point, slash commands
-│       ├── ChatHandler.cs             # ✅ EXISTS - Chat hook → HTTP POST
+│       ├── FFXIVoices.csproj          # ✅ EXISTS - .NET 10, NAudio, Dalamud v14 refs
+│       ├── FFXIVoices.json            # ✅ EXISTS - Plugin manifest (DalamudApiLevel 10)
+│       ├── Plugin.cs                  # ✅ EXISTS - Entry point, slash commands, IPluginLog DI
+│       ├── ChatHandler.cs             # ✅ EXISTS - Chat hook → HTTP POST (party/say filter)
 │       ├── AudioPlayer.cs             # ✅ EXISTS - WS client → NAudio playback
 │       └── Configuration.cs           # ✅ EXISTS - ServerUrl, WsUrl, Volume
 ├── server\
@@ -55,16 +61,17 @@ H:\Development\FFXIVoices\
 │   ├── voices.json                    # ✅ EXISTS - Voice overrides map
 │   ├── setup-piper.ps1               # ✅ EXISTS - Download script
 │   ├── setup-piper.sh                # ✅ EXISTS - Linux variant
-│   ├── piper\                        # 🔧 CREATED BY setup-piper.ps1
+│   ├── piper\                        # ✅ EXISTS - Piper TTS binary
 │   │   └── piper.exe
-│   ├── voices\                       # 🔧 CREATED BY setup-piper.ps1
+│   ├── voices\                       # ✅ EXISTS - Voice models
 │   │   ├── en_US-ryan-medium.onnx
 │   │   ├── en_US-ryan-medium.onnx.json
 │   │   ├── en_US-amy-medium.onnx
 │   │   └── en_US-amy-medium.onnx.json
-│   └── test-client.html              # 📝 TO CREATE - Browser audio test page
+│   └── test-client.html              # ✅ EXISTS - Browser audio test page
 └── test\
-    └── test-curl.sh                   # 📝 TO CREATE - Smoke test script
+    ├── test-curl.sh                   # ✅ EXISTS - Smoke test script (5 tests)
+    └── test-voices.sh                 # ✅ EXISTS - Voice parity test
 ```
 
 ---
@@ -92,10 +99,11 @@ node --version
 The plugin project references Dalamud DLLs via `$(DALAMUD_HOME)`. You must set this.
 
 ```powershell
-# Find your Dalamud install (typical path):
+# Option A: If XIVLauncher is installed
 $DalamudPath = "$env:APPDATA\XIVLauncher\addon\Hooks\dev"
-# OR for release Dalamud:
-# $DalamudPath = (Get-ChildItem "$env:APPDATA\XIVLauncher\addon\Hooks" -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+
+# Option B: Use the downloaded DLLs in the repo (Dalamud v14, .NET 10)
+$DalamudPath = "H:\Development\FFXIVoices\dalamud"
 
 # Verify it has the DLLs
 Test-Path "$DalamudPath\Dalamud.dll"  # Must be True
@@ -377,7 +385,13 @@ Edit `server/voices.json` to hardcode specific player→voice mappings:
 
 ---
 
-## PHASE 5: Plugin Build & Load (~45 min)
+## PHASE 5: Plugin Build & Load (~45 min) ✅ COMPLETE
+
+> **Completed 2026-03-23.** Dalamud v14 DLLs downloaded (net10.0-windows target).
+> Plugin code updated for Dalamud v14 API: `IPluginLog` DI (static `PluginLog` removed),
+> `OnChatMessage(XivChatType, int timestamp, ...)` signature, `IPlayerCharacter.GameObjectId`
+> for sender ID, `Dalamud.Bindings.ImGui` (replaces `ImGuiNET`). Build succeeds with 0 errors.
+> All 5 smoke tests pass against running server.
 
 ### Step 12: Build the Dalamud Plugin
 
@@ -405,41 +419,17 @@ dotnet build -c Release
 | `RequiredVersion attribute` | May need removal on newer Dalamud — see Step 13 |
 | `IPlayerCharacter` missing | Update Dalamud DLLs or change to `PlayerCharacter` |
 
-### Step 13: Fix Known API Compatibility Issues
+### Step 13: API Compatibility (Resolved for Dalamud v14)
 
-The scaffolded code uses some APIs that vary across Dalamud versions. Check these:
+All API compatibility issues have been resolved:
 
-**Plugin.cs** — `[RequiredVersion("1.0")]` attributes may cause build warnings/errors on newer Dalamud. If so, remove them:
-```csharp
-// Change FROM:
-public Plugin(
-    [RequiredVersion("1.0")] IDalamudPluginInterface pluginInterface,
-    [RequiredVersion("1.0")] IChatGui chatGui,
-    ...
-
-// Change TO:
-public Plugin(
-    IDalamudPluginInterface pluginInterface,
-    IChatGui chatGui,
-    ...
-```
-
-**ChatHandler.cs** — `OnChatMessage` signature may differ. Modern Dalamud uses:
-```csharp
-// If build error on ChatMessage event signature, try:
-private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
-// OR (newer Dalamud):
-private void OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
-```
-
-**ChatHandler.cs** — ContentId extraction. `IPlayerCharacter` may not expose `ContentId` directly. POC workaround (already in code): use `0` and rely on `playerName` mapping. For real ContentId:
-```csharp
-// If available in your Dalamud version:
-if (playerChar != null)
-{
-    contentId = playerChar.ContentId; // uint64
-}
-```
+- **Target framework**: `net10.0-windows` (Dalamud v14 requires .NET 10)
+- **ImGuiNET → Dalamud.Bindings.ImGui**: ImGuiNET.dll no longer ships; replaced in csproj
+- **PluginLog**: Static `Dalamud.Logging.PluginLog` removed in v14; now uses `IPluginLog` via DI
+- **ChatMessage event**: Signature is `(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)`
+- **IPlayerCharacter**: Lives in `Dalamud.Game.ClientState.Objects.SubKinds`; no `ContentId` property — using `GameObjectId` from `IGameObject` base
+- **VolumeWaveProvider16**: Not `IDisposable` — removed `using` declaration
+- **CommandInfo**: `HandlerDelegate` signature is `(string command, string arguments)`
 
 ### Step 14: Deploy Plugin to Dalamud Dev Folder
 

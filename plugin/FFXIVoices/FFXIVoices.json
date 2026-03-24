@@ -1,12 +1,11 @@
 {
-  "Author": "FFXIVoices",
-  "Name": "FFXIVoices",
-  "Punchline": "TTS voices for party chat using Piper",
-  "Description": "Sends party/say chat to a local TTS server and plays back generated speech audio for each player.",
+  "Author": "CommsLink",
+  "Name": "CommsLink Voices",
+  "Punchline": "TTS voices for party chat powered by CommsLink",
+  "Description": "Sends party/say chat to the CommsLink TTS server and plays back generated speech audio for each player.",
   "InternalName": "FFXIVoices",
-  "AssemblyVersion": "0.1.0.0",
-  "RepoUrl": "",
+  "AssemblyVersion": "0.7.0.0",
+  "RepoUrl": "https://github.com/puppyprogrammer/CommsLink-Voices-for-FFXIV",
   "ApplicableVersion": "any",
-  "Tags": [ "tts", "voice", "chat", "party" ],
-  "DalamudApiLevel": 10
+  "Tags": [ "tts", "voice", "chat", "party" ]
 }

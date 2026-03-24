@@ -15,29 +15,38 @@ public sealed class ChatHandler : IDisposable
 {
     private readonly IChatGui chatGui;
     private readonly IObjectTable objectTable;
-    private readonly HttpClient httpClient;
+    private readonly IClientState clientState;
     private readonly Configuration config;
+    private readonly AuthClient authClient;
     private readonly IPluginLog log;
 
-    public ChatHandler(IChatGui chatGui, IObjectTable objectTable, Configuration config, IPluginLog log)
+    public ChatHandler(IChatGui chatGui, IObjectTable objectTable, IClientState clientState,
+        Configuration config, AuthClient authClient, IPluginLog log)
     {
         this.chatGui = chatGui;
         this.objectTable = objectTable;
+        this.clientState = clientState;
         this.config = config;
+        this.authClient = authClient;
         this.log = log;
-        this.httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
 
         this.chatGui.ChatMessage += OnChatMessage;
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
+        if (!authClient.IsLoggedIn) return;
+
         bool isParty = type == XivChatType.Party || type == XivChatType.CrossParty;
         bool isSay = type == XivChatType.Say;
+        bool isShout = type == XivChatType.Shout || type == XivChatType.Yell;
+        bool isWhisper = type == XivChatType.TellOutgoing;
 
         if (isParty && !config.EnablePartyChat) return;
         if (isSay && !config.EnableSayChat) return;
-        if (!isParty && !isSay) return;
+        if (isShout && !config.EnableShoutChat) return;
+        if (isWhisper && !config.EnableWhisperChat) return;
+        if (!isParty && !isSay && !isShout && !isWhisper) return;
 
         var senderName = sender.TextValue;
         var messageText = message.TextValue;
@@ -45,46 +54,61 @@ public sealed class ChatHandler : IDisposable
         if (string.IsNullOrWhiteSpace(senderName) || string.IsNullOrWhiteSpace(messageText))
             return;
 
-        // Resolve GameObjectId as the best unique ID available in Dalamud v14
-        ulong objectId = 0;
-        var playerChar = objectTable
-            .OfType<IPlayerCharacter>()
-            .FirstOrDefault(pc => pc.Name.TextValue == senderName);
-        if (playerChar != null)
-            objectId = playerChar.GameObjectId;
+        // Only send our own messages — other plugin users send their own
+        var localPlayer = clientState.LocalPlayer;
+        if (localPlayer == null) return;
 
-        _ = SendToServerAsync(senderName, objectId.ToString(), messageText);
+        var localName = localPlayer.Name.TextValue;
+        if (!senderName.Contains(localName, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // Auto-sync character name if not set
+        if (config.CharName != localName)
+        {
+            config.CharName = localName;
+        }
+
+        float x = localPlayer.Position.X;
+        float y = localPlayer.Position.Y;
+        float z = localPlayer.Position.Z;
+        uint zone = clientState.TerritoryType;
+        uint mapId = clientState.MapId;
+
+        _ = SendToServerAsync(messageText, zone, mapId, x, y, z);
     }
 
-    private async Task SendToServerAsync(string playerName, string contentId, string message)
+    private async Task SendToServerAsync(string message, uint zone, uint mapId, float x, float y, float z)
     {
         try
         {
+            using var client = authClient.GetAuthedClient();
             var payload = JsonSerializer.Serialize(new
             {
-                playerName,
-                contentId,
                 message,
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                zone = (int)zone,
+                mapId = (int)mapId,
+                x,
+                y,
+                z,
             });
 
             var content = new StringContent(payload, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync($"{config.ServerUrl}/chat", content);
+            var response = await client.PostAsync($"{config.ServerUrl}/chat", content);
 
             if (!response.IsSuccessStatusCode)
             {
-                log.Warning("[FFXIVoices] Server returned {0} for message from {1}", response.StatusCode, playerName);
+                var body = await response.Content.ReadAsStringAsync();
+                log.Warning("[CommsLink Voices] Chat POST {0}: {1}", response.StatusCode, body);
             }
         }
         catch (Exception ex)
         {
-            log.Error("[FFXIVoices] Failed to send chat: {0}", ex.Message);
+            log.Error("[CommsLink Voices] Failed to send chat: {0}", ex.Message);
         }
     }
 
     public void Dispose()
     {
         chatGui.ChatMessage -= OnChatMessage;
-        httpClient.Dispose();
     }
 }

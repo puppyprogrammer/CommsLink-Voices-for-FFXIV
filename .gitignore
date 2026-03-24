@@ -19,6 +19,19 @@ dalamud/
 *.wav
 *.exe
 
+# Server prod (deployed separately, may contain secrets)
+server-prod/
+deploy-patch/
+
+# Publish output
+plugin/FFXIVoices/publish/
+
+# Logs
+*.log
+
+# Test scripts
+test/
+
 # OS
 Thumbs.db
 Desktop.ini
