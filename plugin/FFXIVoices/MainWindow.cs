@@ -3,7 +3,7 @@ using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Dalamud.Plugin.Services;
 
 namespace FFXIVoices;
