@@ -28,6 +28,37 @@
         "dependencies": {
           "NAudio.Core": "2.2.1"
         }
+      },
+      "NLayer.NAudioSupport": {
+        "type": "Direct",
+        "requested": "[1.4.0, )",
+        "resolved": "1.4.0",
+        "contentHash": "XV+xFJlHgjZT1Z/dLbLg9t0ZLW3iUa+bv/zp/xr5AYt1WEOqYS7akpYSYf6Ia0+Rh4N0DWPLveU+RRTX4rKGyQ==",
+        "dependencies": {
+          "NAudio.Core": "2.0.0",
+          "NLayer": "1.15.0"
+        }
+      },
+      "Microsoft.NETCore.Platforms": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
+      },
+      "NETStandard.Library": {
+        "type": "Transitive",
+        "resolved": "1.6.1",
+        "contentHash": "WcSp3+vP+yHNgS8EV5J7pZ9IRpeDuARBPN28by8zqff1wJQXm26PVU8L3/fYLBJVU7BtDyqNVWq2KlCVvSSR4A==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.1.0"
+        }
+      },
+      "NLayer": {
+        "type": "Transitive",
+        "resolved": "1.15.0",
+        "contentHash": "SfNANUqZmrHfow1JObgLDLUZUD9Yp81xjfSPGELN1wewZ9/DEpSXMP1sdnjosuP4IpvEcF8xUn/43agc21RcTw==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1"
+        }
       }
     }
   }

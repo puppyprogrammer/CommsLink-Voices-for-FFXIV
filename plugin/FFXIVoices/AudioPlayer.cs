@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
+using NLayer.NAudioSupport;
 
 namespace FFXIVoices;
 
@@ -248,7 +249,7 @@ public sealed class AudioPlayer : IDisposable
         {
             using var ms = new MemoryStream(audioData);
             WaveStream reader = format == "mp3"
-                ? new Mp3FileReader(ms)
+                ? new Mp3FileReaderBase(ms, wf => new Mp3FrameDecompressor(wf))
                 : new WaveFileReader(ms);
 
             using (reader)
