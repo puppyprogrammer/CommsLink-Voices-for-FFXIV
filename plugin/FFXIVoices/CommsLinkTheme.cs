@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Reflection;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures;
 using Dalamud.Plugin.Services;
 
@@ -233,7 +233,7 @@ public static class CommsLinkTheme
         var logoWrap = LogoTexture?.GetWrapOrDefault();
         if (logoWrap != null)
         {
-            ImGui.Image(logoWrap.ImGuiHandle, new Vector2(28, 28));
+            ImGui.Image(logoWrap.Handle, new Vector2(28, 28));
             ImGui.SameLine();
         }
 
